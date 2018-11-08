@@ -1,3 +1,3 @@
 # Telling a story using Zillow Data
 
-This short project aims to tell a story about trends in housing prices over time by emphasizing both changes over time on a nationwide level, as well as on a city-by-city level. By using a combination of interactive maps, line graphs, and bar graphs, this short project also aims to maximize the interactive tools that one could produce with R's Shiny, Leaflet, and ggplot2 packages.
+This short project aims to tell a story about trends in housing prices over time by emphasizing both changes over time on a nationwide level, as well as on a city-by-city level. By using a combination of  maps, line graphs, and bar graphs, this short project  aims to maximize the interactive tools that one could produce with R's Shiny, Leaflet, and ggplot2 packages, allowing the dashboard to pique each user's individual interests, backgrounds, and experiences.
