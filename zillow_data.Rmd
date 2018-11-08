@@ -1,0 +1,81 @@
+---
+title: "Zillow Group Data Visualization: Housing Affordability Over Time"
+author: "By Steven Espinoza"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align='center')
+library(leaflet)
+library(shiny)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(plotly)
+```
+
+```{r, echo=FALSE, include=FALSE}
+# Loading in the data
+df <- read_csv('Affordability%_2018Q2.csv')
+```
+
+```{r, echo=FALSE, include=FALSE}
+# Making the data tidy so that each row is an observation and each column is a variable
+df <- df %>% 
+  gather("Year", "Index Value", `1979-03`:`2018-06`)
+
+# Changing the "Year" column from just a character vector to a date vector in the format of year-month-day
+df$Year <- parse_date(df$Year, "%Y-%m")
+
+# Finally, cleaning column names
+df <- df %>% clean_names()
+
+# Making three different tables: Price To Income, Mortgage Affordability, and Rent Affordability
+# PRICE TO INCOME
+price_to_income <- df %>% filter(index == "Price To Income")
+
+# MORTGAGE AFFORDABILITY
+mort_afford <- df %>% filter(index == "Mortgage Affordability")
+
+# RENT AFFORDABILITY
+rent_afford <- df %>% filter(index == 'Rent Affordability')
+
+# Joining all the tables in one, followed by rearranging the column name (note: spread() would have also been a good function to work with at the top, but doing so would have resulted in multiple NA values which distort the data)
+df_ <- left_join(price_to_income, mort_afford, c("region_id", "region_name", 'size_rank', 'year')) %>% 
+  left_join(rent_afford, c("region_id", "region_name", 'size_rank', 'year')) %>% 
+  select(-index.x, -index.y, -index, -region_id)
+
+colnames(df_) <- c('region', 'size', 'histavg_pricetoinc', 'year', 'price_to_income', 'histavg_mortafford', 'mort_afford', 'histavg_rentafford', 'rent_afford')
+```
+
+### Housing Affordability Over Time: National Trends
+A solid predictor of livability in the United States has always depended primarily on the value of homes. This has become a hot topic in more recent times, with economists and journalists more and more often finding themselves asking, for example, why millennials aren't buying homes, or why people in Silicon Valley are paying thousands of dollars to live in someone's garage. These questions seem to imply that livability in the United States is slowly getting worse, but is this really the case?
+
+One way to measure how livability has changed over time is by looking at how the ratio of the median house prices to median household incomes has changed over time. This common measure is known as the "price-to-income" ratio. According to [Credit Sesame](https://www.creditsesame.com/blog/mortgage/how-much-house-can-i-afford/), a traditional starting point has been to start the home search process looking for homes whose prices are 2.5 times your salary. The graph below shows how this ratio has changed among the median house price and household income of the United States as a whole.
+
+```{r fig.align='center', echo=FALSE}
+# TRENDS AS A WHOLE: Price-to-Income Ratio Over Time
+
+div(df_ %>% 
+  filter(region=='United States') %>% 
+  plot_ly(x = ~year, y = ~price_to_income, name = 'Price to Income', type = 'scatter', mode = 'lines', line = list(color = 'red', width = 4)) %>% 
+  layout(title = "Price to Income Ratio Over Time", xaxis=list(title='Year'), yaxis=list(title='Price to Income Index')), align='center')
+
+
+```
+
+The graph shows that for the entire time between March 1979 and December 2000, this ratio had consistently hovered between 2.7 and 3. This was followed by a steady increase, peaking at 4 until right before the housing crisis began in late 2006. After this point, prices suddenly plummeted, hitting a relative low in early 2012. Since then, however, this index has been increasing once again; the latest data shows the ratio at 3.6.
+
+Solely looking at the prices of homes fails to consider that a large portion of the U.S. population pays rent as opposed to mortgages, including about [two-thirds of households headed by young adults](http://www.pewresearch.org/fact-tank/2017/07/19/more-u-s-households-are-renting-than-at-any-point-in-50-years/) according to the Pew Research Center. The graph below seems to explain this trend nicely, as the rent affordability index has been higher than the mortgage affordability index since 1985.
+
+```{r fig.align='center', echo=FALSE}
+### COMPARING MORTGAGE AFFORDABILITY TO RENT AFFORDABILITY
+div(df_ %>% 
+  filter(region=='United States') %>% 
+  plot_ly(x = ~year, y = ~mort_afford, name = 'Mortgage Affordability', type = 'scatter', mode = 'lines', line = list(color = 'gray', width = 4)) %>% 
+  add_trace(y = ~rent_afford, name = 'Rent Affordability', line = list(color = 'blue', width = 4)) %>% 
+    layout(title = 'Mortgage and Rent Affordability', xaxis=list(title='Year'), yaxis=list(title='Index')), align='center')
+
+
+```
+
