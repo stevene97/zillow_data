@@ -1,7 +1,8 @@
 ---
-title: "Zillow Group Data Visualization: Housing Affordability Over Time"
+title: "Zillow Group Data Visualization Project: Trends in Housing Affordability"
 author: "By Steven Espinoza"
 output: html_document
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +13,8 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(plotly)
+library(stringr)
+library(kableExtra)
 ```
 
 ```{r, echo=FALSE, include=FALSE}
@@ -49,33 +52,355 @@ colnames(df_) <- c('region', 'size', 'histavg_pricetoinc', 'year', 'price_to_inc
 ```
 
 ### Housing Affordability Over Time: National Trends
-A solid predictor of livability in the United States has always depended primarily on the value of homes. This has become a hot topic in more recent times, with economists and journalists more and more often finding themselves asking, for example, why millennials aren't buying homes, or why people in Silicon Valley are paying thousands of dollars to live in someone's garage. These questions seem to imply that livability in the United States is slowly getting worse, but is this really the case?
+A solid predictor of livability in the United States has always depended primarily on the value of homes. This has become a hot topic with economists and journalists more and more often finding themselves asking, for example, why millennials aren't buying homes, or why people in Silicon Valley are paying thousands of dollars to live in someone's garage. These questions seem to imply that livability in the United States is slowly getting worse, but is this really the case?
 
-One way to measure how livability has changed over time is by looking at how the ratio of the median house prices to median household incomes has changed over time. This common measure is known as the "price-to-income" ratio. According to [Credit Sesame](https://www.creditsesame.com/blog/mortgage/how-much-house-can-i-afford/), a traditional starting point has been to start the home search process looking for homes whose prices are 2.5 times your salary. The graph below shows how this ratio has changed among the median house price and household income of the United States as a whole.
+One way to measure how livability has changed over time is by looking at how the ratio of median house prices to median household incomes has changed over time. This common measure is known as the "price-to-income" ratio. According to [Credit Sesame](https://www.creditsesame.com/blog/mortgage/how-much-house-can-i-afford/), a traditional starting point for the home search process has been to look for homes whose prices are 2.5 times your annual salary. The graph below shows how this ratio has changed over time in the United States as a whole.
 
 ```{r fig.align='center', echo=FALSE}
 # TRENDS AS A WHOLE: Price-to-Income Ratio Over Time
 
 div(df_ %>% 
   filter(region=='United States') %>% 
-  plot_ly(x = ~year, y = ~price_to_income, name = 'Price to Income', type = 'scatter', mode = 'lines', line = list(color = 'red', width = 4)) %>% 
-  layout(title = "Price to Income Ratio Over Time", xaxis=list(title='Year'), yaxis=list(title='Price to Income Index')), align='center')
+  plot_ly(x = ~year, y = ~price_to_income, name = 'Price to Income', type = 'scatter', mode = 'lines', line = list(color = 'red', width = 5, dash = 'dot')) %>% 
+  layout(title = "Price to Income Ratio Over Time", xaxis=list(title='Year'), yaxis=list(title='Price to Income Ratio')), align='center')
 
 
 ```
 
-The graph shows that for the entire time between March 1979 and December 2000, this ratio had consistently hovered between 2.7 and 3. This was followed by a steady increase, peaking at 4 until right before the housing crisis began in late 2006. After this point, prices suddenly plummeted, hitting a relative low in early 2012. Since then, however, this index has been increasing once again; the latest data shows the ratio at 3.6.
+The graph shows that for the entire time between March 1979 and December 2000, this ratio had consistently hovered between 2.7 and 3. This was followed by a steady increase, peaking at 4 until right before the housing bubble burst in late 2006. After this point, prices suddenly plummeted, hitting a relative low in early 2012. Since then, however, this ratio has been increasing once again; the latest data shows the ratio at 3.6.
 
-Solely looking at the prices of homes fails to consider that a large portion of the U.S. population pays rent as opposed to mortgages, including about [two-thirds of households headed by young adults](http://www.pewresearch.org/fact-tank/2017/07/19/more-u-s-households-are-renting-than-at-any-point-in-50-years/) according to the Pew Research Center. The graph below seems to explain this trend nicely, as the rent affordability index has been higher than the mortgage affordability index since 1985.
+Solely looking at the prices of homes fails to consider that a large portion of the U.S. population pays rent as opposed to mortgages, including about [two-thirds of households headed by young adults](http://www.pewresearch.org/fact-tank/2017/07/19/more-u-s-households-are-renting-than-at-any-point-in-50-years/) according to the Pew Research Center. The graph below attempts to account for this distinction by looking at "rent affordability" and "mortgage affordability," which are defined as the amount of an individual's monthly income going towards their monthly rent or mortgage payments respectively.
 
-```{r fig.align='center', echo=FALSE}
+```{r, echo=FALSE}
 ### COMPARING MORTGAGE AFFORDABILITY TO RENT AFFORDABILITY
 div(df_ %>% 
   filter(region=='United States') %>% 
-  plot_ly(x = ~year, y = ~mort_afford, name = 'Mortgage Affordability', type = 'scatter', mode = 'lines', line = list(color = 'gray', width = 4)) %>% 
-  add_trace(y = ~rent_afford, name = 'Rent Affordability', line = list(color = 'blue', width = 4)) %>% 
-    layout(title = 'Mortgage and Rent Affordability', xaxis=list(title='Year'), yaxis=list(title='Index')), align='center')
+  mutate(mort_afford = 100 * mort_afford) %>% 
+  mutate(rent_afford = 100 * rent_afford) %>% 
+  plot_ly(x = ~year, y = ~mort_afford, name = 'Mortgage Affordability', type = 'scatter', mode = 'lines', line = list(color = 'blue', width = 3)) %>% 
+  add_trace(y = ~rent_afford, name = 'Rent Affordability', line = list(color = 'green', width = 4)) %>% 
+  layout(title = 'Mortgage and Rent Affordability', xaxis=list(title='Year'), yaxis=list(title='Share of Monthly Income Towards Housing (in %)')) %>% 
+  layout(legend = list(orientation = 'h')), align = 'center')
 
 
 ```
+
+Since the 1980s, the typical renter in the United States has had to pay a larger share of their monthly income on housing as opposed to the typical homeowner. This gap has grown substantially since the financial crisis, and today the typical renter devotes roughly 28% of their income to housing while the typical homeowner devotes only about 18%. Given that the vast majority of young adults make monthly rent payments as opposed to monthly mortgage payments, perhaps the chart above may serve to forecast a sustained gap in the level of wealth inequality, which remains a dominant feature of the modern American economy.
+
+### Housing Affordability Over Time: Regional Trends
+To what extent do distinct regions throughout the United States deviate from, or adhere to, these national trends? The small app below aims to answer this question. Type in three regions in the text box below to compare how the price-to-income ratio has changed over time across different cities. Feel free to toggle on or off individual lines on the graph by clicking on their labels below the line graph.
+
+```{r echo=FALSE}
+# Define UI for application that draws price-to-income ratios over time by selecting regions
+shinyApp(
+  
+  ui <- fluidPage(
+  
+  # Application title
+  titlePanel(""),
+  
+  sidebarPanel(
+    titlePanel("Regional Price-to-Income Ratio"),
+    # Select region name here
+    selectizeInput(inputId = "name",
+                label = "Start typing a region",
+                choices = unique(df_$region),
+                multiple = T,
+                options = list(maxItems = 3, placeholder = 'Select a region'),
+                selected = "United States")),
+  
+  # Show a plot of the generated graph
+  mainPanel(
+    plotlyOutput("trendPlot")
+  )),
+
+
+# Define server logic required to draw a trend plot
+server <- function(input, output, session){
+  output$trendPlot <- renderPlotly({
+    df_trend <- df_ %>% filter(region == input$name)
+    
+    df_trend %>%
+    group_by(region) %>% 
+    plot_ly(x = ~year, y = ~price_to_income, height = 350, type='scatter', mode='lines', color = ~region, name = ~region) %>%
+    layout(xaxis = list(title = ''), yaxis = list(title = 'Price-to-Income Ratio')) %>% 
+    layout(legend = list(orientation = 'h'))
+    
+  })
+},
+options = list(height=430)
+)
+
+```
+The tool above reveals a few interesting insights about the kinds of cities that deviate from broader national trends. For instance, if you take a look at the United States as a whole and compare it to the cities of Dallas and Houston, you can easily see how the housing bubble in these localities was much more restrained. Whether this stark contrast is attributed to variables such as an elastic housing supply or lending practices among consumers is still a subject of debate among today's urban economists.
+
+```{r, echo=FALSE, include=FALSE}
+# Making latitude, longitudes for the twenty five largest cities:
+dftop25 <- df_ %>% 
+  filter(size <= 25) %>% 
+  filter(region != "United States")
+
+# Writing csv to export it into Python, using the "geocoder" package to automatically geocode the top fifty locations (in my experience, more reliable than automatic geocoder in R's leaflet package). To split columns by commas, I decided to do it simply and quickly on Excel.
+dftop25 %>% head (25) %>% select(region) %>% write_csv('top25regions.csv')
+
+# Reading in the new file with split columns
+geocodedregions <- read_csv('geocodedregions.csv')
+
+# Adding these latitudes and longitudes to dftop50
+dftop25 <- dftop25 %>% left_join(geocodedregions, 'region')
+```
+
+```{r, echo=FALSE, include=FALSE}
+# Making a new column "year2" that groups indices by year
+# SUMMARIZING PRICE TO INCOME RATIO BY YEAR: Taking the average price-to-income ratio per year per region
+summary_price_to_income <- dftop25 %>% 
+  mutate(year2 = year(year)) %>% 
+  group_by(year2, region) %>% 
+  summarize(avg = mean(price_to_income))
+
+# Adding coordinates to the graph
+summary_price_to_income <- left_join(summary_price_to_income, geocodedregions, "region")
+
+```
+
+The contrast between these Sunbelt housing markets and other regions' housing markets can also be shown in the map below, which displays each housing market as a "bubble." Select a year to compare the largest 25 cities' price-to-income ratios for a specific moment in time. You may also press "play" to watch the housing bubble in action and see how price-to-income ratios have changed over time.
+
+```{r echo=FALSE, fig.height=15}
+# Define UI for application that draws a map
+shinyApp(
+  ui <- fluidPage(
+  
+  # Application title
+  titlePanel(""),
+  
+  sidebarPanel(
+    # Select region name here
+    sliderInput(inputId = "integer", 
+              label = 'Select a year:', 
+              value = 1979, 
+              min = 1979, max = 2018,
+              sep = '',
+              animate=T)),
+  
+  # Show a plot of the generated distribution
+  mainPanel(
+    leafletOutput("trendPlot")
+  )),
+
+
+# Define server logic required to draw a histogram
+server <- function(input, output, session){
+  output$trendPlot <- renderLeaflet({
+    pal <- colorNumeric(palette = topo.colors(20), domain = summary_price_to_income$avg)
+    
+    summary_price_to_income %>% 
+      filter(year2 == input$integer) %>% 
+      leaflet() %>% 
+      addProviderTiles('CartoDB') %>% 
+      addCircleMarkers(lng = summary_price_to_income$longitude, lat = summary_price_to_income$latitude, 
+                       popup = ~paste0("<b>", region, "</b>", "<br/>", 
+                                       "Price-to-Income Ratio: ", 
+                                       round(avg, 3)), 
+                       radius = ~3*avg, 
+                       color = 'orange', 
+                       fillColor = ~pal(summary_price_to_income$avg), stroke=TRUE,
+                       fillOpacity = summary_price_to_income$avg)
+  })
+},
+
+options = list(height = 525))
+
+```
+
+The interactive map above reveals price-to-income trends for only the largest 25 cities in the nation. To what extent, however, do these trends hold true for all cities in our dataset? The histogram below aims to get a sense of how the distribution of the price-to-income ratio among all cities has changed over time. 
+
+```{r, echo=FALSE, include=FALSE}
+# Creating the dataframe
+histogram_df <- df_ %>% 
+  mutate(year2 = year(year)) %>% 
+  group_by(year2, region) %>% 
+  summarize(avg = mean(price_to_income))
+
+```
+
+```{r, echo=FALSE}
+# Interactive histogram
+shinyApp(
+  
+  ui <- fluidPage(
+  
+  # Application title
+  titlePanel(""),
+  
+  sidebarPanel(
+    # Select region name here
+    sliderInput(inputId = "integer", 
+              label = 'Select a year:', 
+              value = 1979, 
+              min = 1979, max = 2018,
+              sep = '',
+              animate=T)),
+  
+  # Show a plot of the generated graph
+  mainPanel(
+    plotlyOutput("trendPlot")
+  )),
+
+# Define server logic required to draw a trend plot
+server <- function(input, output, session){
+  output$trendPlot <- renderPlotly({
+    histogram_df %>% 
+      filter(year2 == input$integer) %>%
+      filter(!is.na(avg)) %>% 
+      plot_ly(x = ~avg, type='histogram') %>% 
+      layout(xaxis = list(title = 'Price-to-Income Ratio'), yaxis = list(title = 'Number of Regions'))
+  })
+},
+
+options = list(height=450)
+)
+```
+
+While the first few visualizations on this dashboard suggest an always changing price-to-income ratio, the histogram shows that the most common price-to-income ratio has stayed between roughly 2 and 3. Nonetheless, one can see how more regions have faced higher price-to-income ratios over time. For example, in 1979 there were only 5 regions that had a price-to-income ratio above 4.5; today, this number has grown to 54. 
+
+These price-to-income ratio trends have held true for both larger regions and smaller regions, which the next couple of graphs reveal. The visualization on the left shows the average price-to-income trends overtime for the largest 100 regions, while the visualization on the right shows the average price-to-income trends overtime for the smallest 100 regions. Note that these graphs only show the trends in the price-to-income ratio since 2000.
+
+```{r, echo=FALSE}
+  top100part2 <- df_ %>% 
+  filter(size != 0) %>% 
+  filter(size <= 100) %>% 
+  mutate(year2 = year(year)) %>% 
+  group_by(year2) %>% 
+  summarize(avg = mean(price_to_income)) %>% 
+  filter(year2 >= 2000)
+
+bottom100part2 <- df_ %>% 
+  filter(size != 0) %>% 
+  arrange(desc(size)) %>% 
+  filter(size >= 451) %>% 
+  mutate(year2 = year(year)) %>% 
+  group_by(year2) %>% 
+  summarize(avg = mean(price_to_income)) %>% 
+  filter(year2 >= 2000)
+  
+
+p1 <- top100part2 %>% 
+  plot_ly(x = ~year2, y = ~avg) %>%
+  add_lines(name = "Largest 100 Regions") %>% 
+  layout(xaxis = list(title = 'Year'), yaxis = list(title = 'Price-to-Income Ratio'))
+
+p2 <- bottom100part2 %>% 
+  plot_ly(x = ~year2, y = ~avg) %>%
+  add_lines(name = "Smallest 100 Regions") %>% 
+  layout(xaxis = list(title = 'Year'), yaxis = list(title = ''))
+
+p <- subplot(p1, p2, titleX=TRUE, titleY=TRUE)
+
+div(p, align = 'center')
+
+```
+
+## The Growing Divide: A Closer Look at Mortage and Rent Affordability
+As noted earlier, the gap between the share of monthly income renters dedicate for rent and the share of monthly income homeowners dedicate to their mortgage has grown sharply since 2006, when the housing bubble burst.
+
+In which cities is it better to be a homeowner relative to a renter? The table below shows which cities today have the widest gap between rent and mortgage affordability. 
+
+```{r, echo=FALSE}
+table1 <- df_ %>% 
+  filter(year == '2018-06-01') %>% 
+  mutate(diff = rent_afford - mort_afford) %>% 
+  arrange(desc(diff)) %>% 
+  head(10) %>% 
+  select(region, rent_afford, mort_afford, diff) %>% 
+  mutate(rent_afford = paste(round(100*rent_afford), "%", sep='')) %>% 
+  mutate(mort_afford = paste(round(100*mort_afford), "%", sep='')) %>% 
+  mutate(diff = paste(round(100*diff), "%", sep=''))
+
+colnames(table1) <- c("Region", "Rent Affordability", "Mortgage Affordability", "Difference")
+
+table1 %>% 
+  kable(caption = 'Best Places to be a Homeowner (June 2018)') %>% 
+  kable_styling()
+```
+
+From the table, it is clear that the best place to be a homeowner relative to a renter is in Beaumont, TX, which sits 85 miles northeast of Houston. Whereas renters in Beaumont dedicate 28% of their monthly income towards rent, homeowners dedicate only 10% of their monthly income towards their mortgage. 
+
+A key insight from this table is that eight out of the top ten best places to be a homeowner relative to a renter are in the Sunbelt. Note, however, that even though Beaumont is the worst place to be a renter relative to a homeowner, renters in cities like Miami are still dedicating a much greater share of their monthly income towards rent compared to renters in Beaumont.
+
+The question asked behind the first table begs a follow-up: Where is it better to be a renter as opposed to a homeowner? Perhaps the table below can guide us towards this answer.
+
+```{r, echo=FALSE}
+table2 <- df_ %>% 
+  filter(year == '2018-06-01') %>% 
+  mutate(diff = mort_afford - rent_afford) %>% 
+  arrange(desc(diff)) %>% 
+  head(4) %>% 
+  select(region, rent_afford, mort_afford, diff) %>% 
+  mutate(rent_afford = paste(round(100*rent_afford), "%", sep='')) %>% 
+  mutate(mort_afford = paste(round(100*mort_afford), "%", sep='')) %>% 
+  mutate(diff = paste(round(100*diff), "%", sep=''))
+
+colnames(table2) <- c("Region", "Rent Affordability", "Mortgage Affordability", "Difference")
+
+table2 %>% 
+  kable(caption = 'Best Places to be a Renter (June 2018)') %>% 
+  kable_styling()
+
+```
+
+There are only four cities in our data whose rent affordability index today is lower than their mortgage affordability index. The table shows that it is much better by far to be a renter than a homeowner in San Jose, CA, where the typical homeowner dedicates a whopping 53% of their monthly income towards their mortgage. By contrast, the typical renter in San Diego is only paying 36% of their monthly income towards housing. Interestingly, all of these cities are either in Central California or Honolulu, where housing is known to be [especially unaffordable](https://www.theguardian.com/technology/2017/jul/24/facebook-cafeteria-workers-wages-zuckerberg-challenges?CMP=Share_iOSApp_Other). 
+
+A look at how these trends have changed over time by region is shown below. Select a region to see how the gap between rent and mortgage affordability has grown (or shrunk) over time.
+
+```{r, echo=FALSE}
+shinyApp(
+  
+  ui <- fluidPage(
+  
+  # Application title
+  titlePanel(""),
+  
+  sidebarPanel(
+    titlePanel("Regional Price-to-Income Ratio"),
+    # Select region name here
+    selectizeInput(inputId = "name",
+                label = "Select a region",
+                choices = unique(df_$region),
+                multiple = T,
+                options = list(maxItems = 1, placeholder = 'Select a region'),
+                selected = "United States")),
+  
+  # Show a plot of the generated graph
+  mainPanel(
+    plotlyOutput("trendPlot")
+  )),
+
+
+# Define server logic required to draw a trend plot
+server <- function(input, output, session){
+  output$trendPlot <- renderPlotly({
+    df_ %>%
+      mutate(mort_afford = 100*mort_afford) %>% 
+      mutate(rent_afford = 100*rent_afford) %>% 
+      filter(region == input$name) %>% 
+      plot_ly(x = ~year, y = ~mort_afford, name = 'Mortgage Affordability', type = 'scatter', mode = 'lines',
+              line = list(color = 'blue', width = 3)) %>% 
+      add_trace(y = ~rent_afford, name = 'Rent Affordability', line = list(color = 'green', width = 4)) %>% 
+      layout(xaxis = list(title = ''), yaxis = list(title = '% of Monthly Income Towards Housing')) %>% 
+      layout(legend = list(orientation = 'h'))
+  })
+},
+
+options = list(height=425)
+)
+
+```
+
+One interesting insight from playing with the app above is that a fair amount of regions like Chicago, Miami, and Portland, OR, show the two lines intersecting at some point near 1986, the same year President Reagan's second wave of tax reforms kicked in. These reforms, among other things, aimed to incentivize homeownership by increasing the home mortgage interest deduction. Maybe this can help explain why paying a mortgage became more affordable than paying rent after this time.
+
+## Conclusion
+Overall, one answer to the broad question on whether housing affordability in the United
+States has gotten better or worse depends on the data being analyzed. The person who looks only at the price-to-income ratio might reasonably conclude that affordability has gotten worse with time, while the person who looks only at rent affordability might conclude that the situation has generally stayed the same. This might suggest that the question itself could be the problem. 
+
+A better question, then, must aim to be more specific. How has the situation of renters compared to home-buyers changed over time? Which regions are the best for millennials, who are most likely looking to rent a home as opposed to buying one? Have cities recovered from the housing bubble, assuming they faced one to begin with? These are the kinds of questions that lead to a more direct story our data can tell all on its own.
 
